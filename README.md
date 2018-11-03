@@ -8,9 +8,9 @@
 ### Endpoints:
 | Type | Endpoint                    | Function                                                 |
 |------|-----------------------------|----------------------------------------------------------|
-| GET  | /stars/height::height       | Returns a block by it's height                           |
+| GET  | /block/:blockHeight         | Returns a block by it's height                           |
 | GET  | /stars/address::address     | Returns all blocks created by the address specified      |
 | GET  | /stars/hash::hash           | Returns a block by it's hash                             |
-| POST | /stars/                     | Create a star                                            |
+| POST | /block/                     | Create a star                                            |
 | POST | /requestValidation          | Request a message to sign to verify                      |
 | POST | /message-signature/validate | Verify signed message to get permission to create a star |

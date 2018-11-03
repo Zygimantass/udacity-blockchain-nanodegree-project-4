@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
   res.json({'success': true, version: version})
 });
 
-app.get('/stars/height::blockHeight', function(req, res) {
+app.get('/block/:blockHeight', function(req, res) {
   let blockHeight = -1;
   if (req.params.blockHeight === undefined) {
     res.status(400).json({'success': false, 'error': 'Please include block ID in URL'});
@@ -39,6 +39,9 @@ app.get('/stars/height::blockHeight', function(req, res) {
 
   dbInterface.getBlock(blockHeight)
   .then((block) => {
+    if (block.body.star !== undefined) {
+      block.body.star.storyDecoded = new Buffer(block.body.star.story.toString(), "hex").toString();
+    }
     res.json(block)
     return;
   })
@@ -57,8 +60,15 @@ app.get('/stars/address::address', function(req, res) {
   let address = req.params.address;
 
   blockChain.getBlocksByAddress(address).then((blocks) => {
+    for (let i = 0; i < blocks.length; i++) {
+      let star = blocks[i].body.star;
+      if (star === undefined) continue;
+      star.storyDecoded = new Buffer(star.story.toString(), "hex").toString();
+    }
+
     res.json(blocks);
   }).catch((err) => {
+    console.log(err)
     res.json([]);
   })
 })
@@ -73,6 +83,9 @@ app.get('/stars/hash::hash', function(req, res) {
   let hash = req.params.hash;
 
   blockChain.getBlockByHash(hash).then((block) => {
+    if (block.body.star.story !== undefined) {
+      block.body.star.storyDecoded = new Buffer(block.body.star.story.toString(), "hex").toString();
+    }
     res.json(block);
   }).catch((err) => {
     res.json({});
@@ -81,7 +94,7 @@ app.get('/stars/hash::hash', function(req, res) {
 
 
 app.post('/requestValidation', (req, res) => {
-  if (req.body.address === undefined) {
+  if (req.body.address === undefined || req.body.address === "") {
     res.status(400).json({'success': false, "error": "No wallet address provided"});
     return;
   }
@@ -98,12 +111,12 @@ app.post('/requestValidation', (req, res) => {
 });
 
 app.post('/message-signature/validate', (req, res) => {
-  if (req.body.address === undefined) {
+  if (req.body.address === undefined || req.body.address === "") {
     res.status(400).json({'success': false, "error": "No wallet address provided"});
     return;
   }
 
-  if (req.body.signature === undefined) {
+  if (req.body.signature === undefined || req.body.signature === "") {
     res.status(400).json({'success': false, "error": "No signature provided"});
     return;
   }
@@ -122,10 +135,10 @@ app.post('/message-signature/validate', (req, res) => {
 
   let successfulVerification = memPool.validateSignature(address, signature);
 
-  res.json({"registerStar": successfulVerification, "status": validation});
+  res.json({"registerStar": successfulVerification, "status": validation, "address": address});
 });
 
-app.post('/stars/', (req, res) => {
+app.post('/block/', (req, res) => {
   if (req.body.address === undefined) {
     res.status(400).json({'success': false, "error": "No wallet address provided"});
     return;
@@ -140,18 +153,23 @@ app.post('/stars/', (req, res) => {
 
   let star = req.body.star;
 
-  if (star.dec === undefined) {
+  if (star.dec === undefined || star.dec === "") {
     res.status(400).json({'success': false, "error": "No declination in the star object is provided"});
     return;
   }
 
-  if (star.ra === undefined) {
+  if (star.ra === undefined || star.ra === "") {
     res.status(400).json({'success': false, "error": "No right ascension in the star object is provided"});
     return;
   }
 
-  if (star.story === undefined) {
+  if (star.story === undefined || star.story === "") {
     res.status(400).json({'success': false, "error": "No story in the star object is provided"});
+    return;
+  }
+
+  if (!(/^[\x00-\x7F]*$/.test(star.story))) {
+    res.status(400).json({'success': false, "error": "Non-ASCII characters in star story found"});
     return;
   }
 
@@ -163,6 +181,13 @@ app.post('/stars/', (req, res) => {
   star.story = new Buffer(star.story.toString()).toString("hex");
   if (!memPool.checkValidation(address)) {
     res.status(200).json({'success': false, "error": "You haven't made a validation request"});
+    return;
+  }
+
+  let validation = memPool.getValidation(address);
+
+  if (!validation.validMessageSignature) {
+    res.status(400).json({'success': false, "error": "You haven't verified your signature"});
     return;
   }
 
