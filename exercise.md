@@ -1,0 +1,11 @@
+# Exercise
+- Configure API web service with GET/POST endpoints
+  - Build and deploy local web service with Node.js
+  - Configure API endpoints with static mock data for testing
+    - GET - Block by ID
+    - POST - New Block
+- Migrate your private blockchain to your API web service
+  - Configure API endpoints to interact with your private blockchain
+    - GET - Block by ID
+    - POST - New Block
+  - Create a method to validate blockchain health
