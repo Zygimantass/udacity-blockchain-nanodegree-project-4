@@ -125,7 +125,7 @@ app.post('/message-signature/validate', (req, res) => {
   res.json({"registerStar": successfulVerification, "status": validation});
 });
 
-app.post('/block', (req, res) => {
+app.post('/stars/', (req, res) => {
   if (req.body.address === undefined) {
     res.status(400).json({'success': false, "error": "No wallet address provided"});
     return;
