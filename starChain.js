@@ -37,7 +37,7 @@ class Blockchain {
         newBlock.height = height + 1;
         newBlock.time = new Date().getTime().toString().slice(0,-3); // timestamp is in UTC format
 
-        if (height > 0) {
+        if (height !== -1) {
           return dbInterface.getBlock(height);
         } else {
           return undefined;
